@@ -9,11 +9,8 @@ import time
 import os
 import subprocess as sp
 from utils import *
-
-try:
-    import RPi.GPIO as GPIO
-except:
-    print("Not on Raspberry")
+import RPi.GPIO as GPIO
+# from neopixel import *
 
 
 class TJBot:
@@ -22,10 +19,6 @@ class TJBot:
 
         self.config = json.load(open("/home/pi/.tjbot-asphi/tjbot_config.json"))
         print(self.config)
-
-        # Audio device MAC address
-        #self.audioMAC = str(open("/home/pi/.tjbot-asphi/audiodev_macaddress").readlines()[0])
-        #print(self.audioMAC)
 
         ####################################################
         # INITIALIZE Speech to Text
@@ -77,6 +70,7 @@ class TJBot:
     def speak(self, text="prova", service="watson"):
         tagged = False
         options = []
+        tmp_filepath = "/home/pi/.tjbot-asphi/" + str(time.time())[0:5] + "_tts_output.wav"
 
         print(text)
 
@@ -87,19 +81,20 @@ class TJBot:
             options = a[1].replace(")", "").replace(" ", "").split(";")
             text = a[0]
 
-        if service == "watson":
-            if os.path.exists("tts_output.wav"):
-                os.remove("tts_output.wav")
-            audio_file = open(join(dirname(__file__), "tts_output.wav"), "wb")
-            audio_file.write(self.text_to_speech.synthesize(text, accept="audio/wav", voice="it-IT_FrancescaVoice"))
-            # os.system("cvlc --play-and-exit tts_output.wav")
-            os.system("aplay -D bluealsa:HCI=hci0,DEV=" + self.config["audio device"] + ",PROFILE=a2dp tts_output.wav")
-        elif service == "google":
-            if os.path.exists("tts_output.mp3"):
-                os.remove("tts_output.mp3")
-            tts = gTTS(text=text, lang="it", slow=False)
-            tts.save("tts_output.mp3")
-            os.system("cvlc --play-and-exit tts_output.mp3")
+        # if service == "watson":
+        if os.path.exists(tmp_filepath):
+            os.remove(tmp_filepath)
+        audio_file = open(tmp_filepath, "wb")
+        audio_file.write(self.text_to_speech.synthesize(text, accept="audio/wav", voice=self.config["voice"]))
+        # os.system("cvlc --play-and-exit tmp_filepath)
+        os.system("aplay -D bluealsa:HCI=hci0,DEV=" + self.config["audio device"] + ",PROFILE=a2dp " + tmp_filepath)
+        
+        # elif service == "google":
+        #     if os.path.exists("tts_output.mp3"):
+        #         os.remove("tts_output.mp3")
+        #     tts = gTTS(text=text, lang="it", slow=False)
+        #     tts.save("tts_output.mp3")
+        #     os.system("cvlc --play-and-exit tts_output.mp3")
 
         # Execute command tags
         print("Tag commands found: " + str(options))
@@ -110,6 +105,8 @@ class TJBot:
                         getattr(self, tag)()
                     except:
                         print("Non-valid tag command received: " + tag)
+
+        os.remove(tmp_filepath)
 
     def analyze_tone(self, text):
         raw_tone = self.tone_analyzer.tone(tone_input=text,
@@ -143,6 +140,15 @@ class TJBot:
             except IndexError:
                 print("Conversation returned no text")
 
+        # Auto-translate answer if requested
+        # if (self.config["autotranslate"]):
+        detected_lang = self.language_translator.identify(answer)["languages"][0]["language"]
+        bot_lang = self.config["voice"][0:2]
+        print("AUTO translate from " + detected_lang + " to " + bot_lang)
+        mid_eng = self.translate(answer, detected_lang, "en")
+        if (detected_lang != bot_lang):
+            answer = self.translate(answer, "en", bot_lang)
+
         return answer
 
     # for now done with google...
@@ -156,7 +162,7 @@ class TJBot:
         with sr.AudioFile("stt_input.wav") as source:
             audio = self.recognizer.record(source)
         try:
-            user_input = str(self.recognizer.recognize_google(audio, language="it-IT")).lower()
+            user_input = str(self.recognizer.recognize_google(audio, language=self.config["voice"][0:5])).lower()
             # user_input = raw_input()
         except:
             user_input = "..."
