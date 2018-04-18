@@ -30,8 +30,8 @@ class TJBot:
         ####################################################
         self.text_to_speech = TextToSpeechV1(
             username=self.config["text to speech"]["username"],
-            password=self.config["text to speech"]["password"],
-            x_watson_learning_opt_out=False)  # Optional flag
+            password=self.config["text to speech"]["password"])
+            #x_watson_learning_opt_out=False)  # Optional flag
         # print(json.dumps(text_to_speech.voices(), indent=2))
 
         ####################################################
@@ -85,7 +85,7 @@ class TJBot:
         if os.path.exists(tmp_filepath):
             os.remove(tmp_filepath)
         audio_file = open(tmp_filepath, "wb")
-        audio_file.write(self.text_to_speech.synthesize(text, accept="audio/wav", voice=self.config["voice"]))
+        audio_file.write(self.text_to_speech.synthesize(text, accept="audio/wav", voice=self.config["voice"]).content)
         # os.system("cvlc --play-and-exit tmp_filepath)
         os.system("aplay -D bluealsa:HCI=hci0,DEV=" + self.config["audio device"] + ",PROFILE=a2dp " + tmp_filepath)
         
@@ -142,24 +142,26 @@ class TJBot:
 
         # Auto-translate answer if requested
         # if (self.config["autotranslate"]):
-        detected_lang = self.language_translator.identify(answer)["languages"][0]["language"]
-        bot_lang = self.config["voice"][0:2]
-        print("AUTO translate from " + detected_lang + " to " + bot_lang)
-        mid_eng = self.translate(answer, detected_lang, "en")
-        if (detected_lang != bot_lang):
-            answer = self.translate(answer, "en", bot_lang)
+        # detected_lang = self.language_translator.identify(answer)["languages"][0]["language"]
+        # bot_lang = self.config["voice"][0:2]
+        # print("AUTO translate from " + detected_lang + " to " + bot_lang)
+        # mid_eng = self.translate(answer, detected_lang, "en")
+        # if (detected_lang != bot_lang):
+            # answer = self.translate(answer, "en", bot_lang)
 
         return answer
 
     # for now done with google...
     def listen(self):
+        tmp_filepath = "/home/pi/.tjbot-asphi/" + str(time.time())[0:5] + "stt_input.wav"
+
         # Record audio
         print("Dimmi qualcosa")
-        rec = sp.Popen(["sox", "-t", "alsa", "plughw:1", "stt_input.wav", "silence", "1", "0.01", "3%", "1", "3.0", "3%"])
+        rec = sp.Popen(["sox", "-t", "alsa", "plughw:1", tmp_filepath, "silence", "1", "0.01", "3%", "1", "3.0", "3%"])
         waitchild(rec)
 
         # Understand words
-        with sr.AudioFile("stt_input.wav") as source:
+        with sr.AudioFile(tmp_filepath) as source:
             audio = self.recognizer.record(source)
         try:
             user_input = str(self.recognizer.recognize_google(audio, language=self.config["voice"][0:5])).lower()
