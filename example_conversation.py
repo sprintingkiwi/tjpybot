@@ -1,4 +1,4 @@
-from tjbot import *
+from tjpybot import *
 
 
 workspace = str(sys.argv[1])
