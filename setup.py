@@ -3,7 +3,7 @@ import setuptools
 setuptools.setup(
     name='tjpybot',
     packages=['tjpybot'],
-    version='0.3',
+    version='0.4',
     description='A playful way to learn coding with Python and TJBot',
     author='ASPHI Onlus',
     author_email='sprintingkiwi@gmail.com',
