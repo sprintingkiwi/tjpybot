@@ -1,3 +1,7 @@
 *.pyc
 *.nja
 .idea/
+build/
+dist/
+tjpybot.egg-info/
+MANIFEST

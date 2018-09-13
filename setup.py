@@ -1,5 +1,6 @@
-from distutils.core import setup
-setup(
+import setuptools
+
+setuptools.setup(
     name='tjpybot',
     packages=['tjpybot'],
     version='0.1',
