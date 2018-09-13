@@ -1,11 +1,9 @@
-from __future__ import print_function
 import json
 from os.path import join, dirname
 import sys
 import time
 import os
 import subprocess as sp
-from utils import *
 # -- coding: utf-8 --   
 
 import urllib3
